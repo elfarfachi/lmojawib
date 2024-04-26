@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fetch Answers</title>
+</head>
+<body>
+    <input type="text" id="urlEntry" placeholder="Enter URL">
+    <button onclick="fetchAnswers()">Fetch Answers</button>
+    <br><br>
+    <textarea id="answersText" rows="10" cols="50" placeholder="Answers will be displayed here"></textarea>
+    <br><br>
+    <button onclick="copyAnswers()">Copy Answers</button>
+    <button onclick="clearText()">Clear Text</button>
+
+    <script>
+        async function fetchAnswers() {
+            try {
+                const url = document.getElementById('urlEntry').value;
+
+                const activityId = extractActivityId(url);
+                if (activityId === null) {
+                    showError("Invalid URL format.");
+                    return;
+                }
+
+                const fullUrl = await getFullUrlFromFile(activityId);
+                if (fullUrl) {
+                    const output = await fetchCorrectAnswers(fullUrl);
+                    if (output && output.length > 0) {
+                        document.getElementById('resultLabel').textContent = "Powered By GROOZA101";
+                        document.getElementById('answersText').value = "";
+                        output.forEach(answer => {
+                            document.getElementById('answersText').value += answer + "\n";
+                        });
+                    } else {
+                        showInfo("No result found.");
+                    }
+                } else {
+                    showInfo("Result not found in file.");
+                }
+            } catch (error) {
+                console.error("An error occurred:", error);
+                // Handle error here, e.g., display an error message to the user
+            }
+        }
+
+        function extractActivityId(url) {
+            try {
+                const match = url.match(/\/activity\/([^/]+)\/exercise/);
+                if (match) {
+                    return match[1];
+                }
+                return null;
+            } catch (error) {
+                console.error("An error occurred:", error);
+                // Handle error here, e.g., display an error message to the user
+                return null;
+            }
+        }
+
+        async function getFullUrlFromFile(activityId) {
+            try {
+                const response = await fetch('final_correct_response.txt');
+                if (!response.ok) {
+                    throw new Error('File not found!');
+                }
+                const text = await response.text();
+                const lines = text.split('\n');
+                for (const line of lines) {
+                    if (line.includes(activityId)) {
+                        return line.trim();
+                    }
+                }
+            } catch (error) {
+                console.error("An error occurred:", error.message);
+                // Handle error here, e.g., display an error message to the user
+                return null;
+            }
+            return null;
+        }
+
+        async function fetchCorrectAnswers(fullUrl) {
+            const headers = {
+                'Host': 'app.ofppt-langues.ma',
+                'X-Device-Uuid': 'c4369295-36a2-4d7b-bd6f-d805f76a5a60',
+                'X-Altissia-Token': '1c9b5e0c51828d85bedbf26b940ffa7bdc5aa8c0407002c234e6c23ccd8087fc',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            };
+            try {
+                const response = await fetch(fullUrl, { headers });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const content = await response.json();
+                if ('content' in content && 'items' in content.content && content.content.items.length > 0) {
+                    const correctAnswersList = [];
+                    for (const item of content.content.items) {
+                        const correctAnswers = item.correctAnswers;
+                        if (correctAnswers) {
+                            correctAnswersList.push(...correctAnswers);
+                        }
+                    }
+                    return correctAnswersList.flat();
+                }
+            } catch (error) {
+                console.error("An error occurred:", error.message);
+                // Handle error here, e.g., display an error message to the user
+                return null;
+            }
+            return null;
+        }
+
+        function clearText() {
+            try {
+                document.getElementById('answersText').value = "";
+            } catch (error) {
+                console.error("An error occurred while clearing text:", error);
+                // Handle error here, e.g., display an error message to the user
+            }
+        }
+
+        function copyAnswers() {
+            try {
+                const answers = document.getElementById('answersText').value;
+                if (answers.trim() !== "") {
+                    navigator.clipboard.writeText(answers)
+                        .then(() => {
+                            console.log("Answers copied to clipboard.");
+                            // Optionally, provide user feedback here
+                        })
+                        .catch((error) => {
+                            console.error("An error occurred while copying answers to clipboard:", error);
+                            // Handle error here, e.g., display an error message to the user
+                        });
+                } else {
+                    console.log("No answers to copy.");
+                    // Optionally, provide user feedback here
+                }
+            } catch (error) {
+                console.error("An error occurred while copying answers:", error);
+                // Handle error here, e.g., display an error message to the user
+            }
+        }
+
+        function showError(message) {
+            try {
+                alert("Error: " + message);
+            } catch (error) {
+                console.error("An error occurred while showing error message:", error);
+                // Handle error here, e.g., display an error message to the user
+            }
+        }
+
+        function showInfo(message) {
+            try {
+                alert("Info: " + message);
+            } catch (error) {
+                console.error("An error occurred while showing info message:", error);
+                // Handle error here, e.g., display an error message to the user
+            }
+        }
+    </script>
+</body>
+</html>

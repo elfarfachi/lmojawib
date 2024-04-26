@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lmojawib</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            background-color: #007bff;
+        }
+        .navbar-brand {
+            color: #fff;
+            font-weight: bold;
+        }
+        .container {
+            max-width: 800px;
+            margin-top: 20px;
+        }
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            background-color: #007bff;
+            color: #fff;
+            border-radius: 10px 10px 0 0;
+        }
+        .card-body {
+            padding: 20px;
+        }
+        .form-check-label {
+            font-weight: 400;
+        }
+        #result {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">Answer Fetcher</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Answer Fetcher</h5>
+            </div>
+            <div class="card-body">
+                <form id="fetchForm">
+                    <div class="mb-3">
+                        <label for="url" class="form-label">URL:</label>
+                        <input type="url" class="form-control" id="url" name="url" required>
+                        <div class="invalid-feedback">Please enter a valid URL.</div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="copy_answers" name="copy_answers">
+                        <label class="form-check-label" for="copy_answers">Copy Answers</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Fetch Answers</button>
+                    <div id="loadingSpinner" class="spinner-border text-primary" role="status" style="display: none;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </form>
+                <div id="result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+    <script>
+        const fetchForm = document.getElementById('fetchForm');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+
+        fetchForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            if (fetchForm.checkValidity()) {
+                loadingSpinner.style.display = 'inline-block';
+
+                const url = document.getElementById('url').value;
+                const copyAnswers = document.getElementById('copy_answers').checked;
+
+                const response = await fetch('/fetch_answers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({ 'url': url, 'copy_answers': copyAnswers })
+                });
+
+                const data = await response.json();
+                loadingSpinner.style.display = 'none';
+
+                if (data.error) {
+                    document.getElementById('result').innerHTML = `<div class="alert alert-danger" role="alert">${data.error}</div>`;
+                } else {
+                    const answers = data.answers.replace(/\n/g, '<br>');
+                    document.getElementById('result').innerHTML = `<div class="alert alert-success" role="alert">${answers}</div>`;
+                    if (copyAnswers) {
+                        navigator.clipboard.writeText(data.answers);
+                    }
+                }
+            } else {
+                fetchForm.classList.add('was-validated');
+            }
+        });
+    </script>
+</body>
+</html>
